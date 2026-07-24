@@ -9,15 +9,10 @@ from sklearn.feature_selection import RFE
 COLUMNS = [
     "price",
     "brand",
-    "model",
-    "yearOfRegistration",
+    "yearORegistration",
     "odometer",
     "powerPS",
-    "vehicleType",
-    "gearbox",
-    "fuelType",
     "notRepairedDamage",
-    "monthOfRegistration",
 ]
 
 df = pd.read_csv("./cars-data/cleaned/autos-cleaned .csv")

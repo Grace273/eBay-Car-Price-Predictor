@@ -8,15 +8,10 @@ from sklearn.preprocessing import StandardScaler
 COLUMNS = [
     "price",
     "brand",
-    "model",
     "yearOfRegistration",
     "odometer",
     "powerPS",
-    "vehicleType",
-    "gearbox",
-    "fuelType",
-    "notRepairedDamage",
-    "monthOfRegistration",
+    "notRepairedDamage"
 ]
 
 df = pd.read_csv("./cars-data/cleaned/autos-cleaned .csv")

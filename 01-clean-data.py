@@ -6,57 +6,37 @@ CLEAN_PATH = "./cars-data/cleaned/autos-cleaned .csv"
 KEEP_COLUMNS = [
     "price",
     "brand",
-    "model",
     "yearOfRegistration",
     "odometer",
     "powerPS",
-    "vehicleType",
-    "gearbox",
-    "fuelType",
     "notRepairedDamage",
-    "monthOfRegistration",
 ]
 
 REQUIRED_COLUMNS = [
     "price",
     "brand",
-    "model",
     "yearOfRegistration",
     "odometer",
 ]
+
+OPTIONAL_CATEGORICAL_COLUMNS = [
+    "notRepairedDamage",
+]
+
+def is_falsy(value):
+    if pd.isna(value):
+        return True
+    if isinstance(value, str):
+        stripped = value.strip()
+        return stripped == "" or stripped == "nan"
+    return value == 0
 
 df = pd.read_csv(RAW_PATH, encoding="latin-1")
 
 #drop columns that are not in KEEP_COLUMNS
 df = df[KEEP_COLUMNS]
 
-#drop rows that have missing values in REQUIRED_COLUMNS
-df = df.dropna(subset=REQUIRED_COLUMNS)
-
 TRANSLATIONS = {
-    "vehicleType": {
-        "limousine": "sedan",
-        "kleinwagen": "compact",
-        "kombi": "wagon",
-        "bus": "van",
-        "cabrio": "convertible",
-        "coupe": "coupe",
-        "suv": "suv",
-        "andere": "other",
-    },
-    "gearbox": {
-        "manuell": "manual",
-        "automatik": "automatic",
-    },
-    "fuelType": {
-        "benzin": "gasoline",
-        "diesel": "diesel",
-        "lpg": "lpg",
-        "cng": "cng",
-        "hybrid": "hybrid",
-        "elektro": "electric",
-        "andere": "other",
-    },
     "notRepairedDamage": {
         "nein": "no",
         "ja": "yes",
@@ -79,6 +59,15 @@ for column in df.select_dtypes(include="object").columns:
 df["price"] = pd.to_numeric(df["price"], errors="coerce")
 df["odometer"] = pd.to_numeric(df["odometer"], errors="coerce")
 
+# drop rows with falsy values in required columns only
+df = df[~df[REQUIRED_COLUMNS].apply(lambda row: any(is_falsy(value) for value in row), axis=1)]
+
+# fill missing optional categoricals; treat 0 powerPS as missing
+for column in OPTIONAL_CATEGORICAL_COLUMNS:
+    df[column] = df[column].apply(lambda value: "unknown" if is_falsy(value) else value)
+
+df.loc[df["powerPS"].isna() | (df["powerPS"] == 0), "powerPS"] = pd.NA
+
 # remove rows with invalid registration year, powerPS, odometer values, and month of registration
 MIN_REGISTRATION_YEAR = 1950
 MAX_REGISTRATION_YEAR = 2016
@@ -93,12 +82,9 @@ df = df[
     (df["price"] > 0)
     & (df["yearOfRegistration"] >= MIN_REGISTRATION_YEAR)
     & (df["yearOfRegistration"] <= MAX_REGISTRATION_YEAR)
-    & (df["powerPS"] >= MIN_POWERPS)
-    & (df["powerPS"] <= MAX_POWERPS)
+    & (df["powerPS"].isna() | df["powerPS"].between(MIN_POWERPS, MAX_POWERPS))
     & (df["odometer"] >= MIN_ODOMETER)
     & (df["odometer"] <= MAX_ODOMETER)
-    & (df["monthOfRegistration"] >= MIN_MONTH_OF_REGISTRATION)
-    & (df["monthOfRegistration"] <= MAX_MONTH_OF_REGISTRATION)
 ]
 
 # remove duplicates
