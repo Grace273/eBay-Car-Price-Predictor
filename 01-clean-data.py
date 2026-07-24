@@ -66,10 +66,40 @@ TRANSLATIONS = {
 #translate values in columns to English
 for column, mapping in TRANSLATIONS.items():
     df[column] = df[column].replace(mapping)
-
-# standardize column names to lowercase
+    
+# standardize values and clean price as a string
 for column in df.select_dtypes(include="object").columns:
-    df[column] = df[column].str.lower()
+    df[column] = df[column].astype(str).str.lower()
+
+    if column == "price":
+        df[column] = df[column].str.replace(r"[$,]", "", regex=True).str.strip()
+    elif column == "odometer":
+        df[column] = df[column].str.replace(r"[,km]", "", regex=True).str.strip()
+
+df["price"] = pd.to_numeric(df["price"], errors="coerce")
+df["odometer"] = pd.to_numeric(df["odometer"], errors="coerce")
+
+# remove rows with invalid registration year, powerPS, odometer values, and month of registration
+MIN_REGISTRATION_YEAR = 1950
+MAX_REGISTRATION_YEAR = 2016
+MIN_POWERPS = 0
+MAX_POWERPS = 1000
+MIN_ODOMETER = 0
+MAX_ODOMETER = 1000000
+MIN_MONTH_OF_REGISTRATION = 1
+MAX_MONTH_OF_REGISTRATION = 12
+
+df = df[
+    (df["price"] > 0)
+    & (df["yearOfRegistration"] >= MIN_REGISTRATION_YEAR)
+    & (df["yearOfRegistration"] <= MAX_REGISTRATION_YEAR)
+    & (df["powerPS"] >= MIN_POWERPS)
+    & (df["powerPS"] <= MAX_POWERPS)
+    & (df["odometer"] >= MIN_ODOMETER)
+    & (df["odometer"] <= MAX_ODOMETER)
+    & (df["monthOfRegistration"] >= MIN_MONTH_OF_REGISTRATION)
+    & (df["monthOfRegistration"] <= MAX_MONTH_OF_REGISTRATION)
+]
 
 # remove duplicates
 df = df.drop_duplicates()
